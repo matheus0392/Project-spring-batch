@@ -1,9 +1,17 @@
-package Info;
+package mnascimento.Domain;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+
+@Entity
 public class Info {
 
+	@Id
 	private Long id;
+	@Column
 	private String name;
+	@Column
 	private String CPF;
 
 	public Info(Long id, String name, String cPF) {
