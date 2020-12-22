@@ -24,6 +24,31 @@ public class Application {
 	@Autowired
 	public StepBuilderFactory stepBuilderFactory;
 
+
+	@Bean
+	public Step givePackeageToCostumerStep() {
+		return this.stepBuilderFactory.get("givePackeageToCostumerStep").tasklet(new Tasklet() {
+
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Given the packeage to  the Costumer.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+
+	@Bean
+	public Step driveToAddressStep() {
+		return this.stepBuilderFactory.get("driveToAddressStep").tasklet(new Tasklet() {
+
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Sucessfully arrived to address.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+
 	@Bean
 	public Step packageItemStep() {
 		return this.stepBuilderFactory.get("packageItemStep").tasklet(new Tasklet() {
@@ -41,6 +66,8 @@ public class Application {
 		return this.jobBuilderFactory
 				.get("deliverPackageJob")
 				.start(packageItemStep())
+				.next(driveToAddressStep())
+				.next(givePackeageToCostumerStep())
 				.build();
 	}
 
