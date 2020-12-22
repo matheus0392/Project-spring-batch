@@ -29,8 +29,8 @@ public class FlowersSelectionStepExecutionListener implements StepExecutionListe
 		System.out.println("Executing after after logic");
 
 		String flowerType=stepExecution.getJobParameters().getString("type");
-		return flowerType.equalsIgnoreCase("roses")? new ExitStatus("TRIM_REQUIRED"):
-			 new ExitStatus("NO_TRIM_REQUIRED");
+		return flowerType != null ?  flowerType.equalsIgnoreCase("roses")? new ExitStatus("TRIM_REQUIRED"):
+			 new ExitStatus("NO_TRIM_REQUIRED"): new ExitStatus("NO_TRIM_REQUIRED");
 		}
 
 }

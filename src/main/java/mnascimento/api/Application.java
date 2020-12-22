@@ -64,6 +64,27 @@ public class Application {
 					.on("NOT_PRESENT").to(leaveAtDoorStep()).build();
 	}
 	
+	@Bean
+	public Step nestedBillingJobStep() {
+		return this.stepBuilderFactory.get("nestedBillingJobStep").job(billingJob()).build();
+	}
+
+	@Bean
+	public Step sendInvoiceStep() {
+		return this.stepBuilderFactory.get("invoiceStep").tasklet(new Tasklet() {
+
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Invoice is sent to the customer");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+
+	@Bean
+	public Job billingJob() {
+		return this.jobBuilderFactory.get("billingJob").start(sendInvoiceStep()).build();
+	}
 	
 	@Bean
     public Step selectFlowersStep() {
@@ -205,6 +226,7 @@ public class Application {
 				.get("deliverPackageJob")
 				.start(packageItemStep())
 				.on("*").to(deliveryFlow())
+				.next(nestedBillingJobStep())
 				.end()
 				.build();
 	}
