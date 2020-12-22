@@ -1,24 +1,33 @@
-package mnascimento.Domain;
+package mnascimento.api.Domains;
+
+import java.io.Serializable;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
 @Entity
-public class Info {
+public class Info implements Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	@Id
-	private Long id;
+	public Long id;
+
 	@Column
 	private String name;
+
 	@Column
 	private String CPF;
 
-	public Info(Long id, String name, String cPF) {
+	public Info() {
+	}
+
+	public Info(Long id, String name, String CPF) {
 		super();
 		this.id = id;
 		this.name = name;
-		CPF = cPF;
+		this.CPF = CPF;
 	}
 
 	public Long getId() {
@@ -38,11 +47,16 @@ public class Info {
 	}
 
 	public String getCPF() {
-		return CPF;
+		return this.CPF;
 	}
 
-	public void setCPF(String cPF) {
-		CPF = cPF;
+	public void setCPF(String CPF) {
+		this.CPF = CPF;
+	}
+
+	@Override
+	public String toString() {
+		return "Info [id=" + id + ", name=" + name + ", CPF=" + CPF + "]";
 	}
 
 }

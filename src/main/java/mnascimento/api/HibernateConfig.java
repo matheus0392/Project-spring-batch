@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 @ConfigurationProperties(prefix = "hibernate-config")
-public class Config {
+public class HibernateConfig {
 
 	@Bean
 	public SessionFactory setup() {
