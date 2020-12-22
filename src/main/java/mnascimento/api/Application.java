@@ -122,7 +122,7 @@ public class Application {
 				.get("deliverPackageJob")
 				.start(packageItemStep())
 				.next(driveToAddressStep())
-					.on("FAILED").to(storePackageStep())
+					.on("FAILED").fail()//.stop()//.to(storePackageStep())
 				.from(driveToAddressStep())
 					.on("*").to(decider())
 						.on("PRESENT").to(givePackeageToCostumerStep())
