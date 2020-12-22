@@ -31,6 +31,33 @@ public class Application {
 	}
 
 	@Bean
+	public  JobExecutionDecider deciderCustomer() {
+		return new CustomerDecider();
+	}
+
+	@Bean
+	public Step giveRefoundStep() {
+		return this.stepBuilderFactory.get("giveRefoundStep").tasklet(new Tasklet() {
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("give the customer refound.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+
+	@Bean
+	public Step thanksCustomerStep() {
+		return this.stepBuilderFactory.get("thanksCustomerStep").tasklet(new Tasklet() {
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("thanks the customer.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+
+	@Bean
 	public Step leaveAtDoorStep() {
 		return this.stepBuilderFactory.get("leaveAtDoorStep").tasklet(new Tasklet() {
 			@Override
@@ -99,6 +126,12 @@ public class Application {
 				.from(driveToAddressStep())
 					.on("*").to(decider())
 						.on("PRESENT").to(givePackeageToCostumerStep())
+						//challenge 25mim
+							.on("*").to(deciderCustomer())
+								.on("CORRECT").to(thanksCustomerStep())
+							.from(deciderCustomer())
+								.on("NOT_CORRECT").to(giveRefoundStep())
+						//
 					.from(decider())
 						.on("NOT_PRESENT").to(leaveAtDoorStep())
 				.end()
