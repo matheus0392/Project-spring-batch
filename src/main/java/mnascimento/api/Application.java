@@ -27,7 +27,7 @@ public class Application {
 
 	@Bean
 	public Step givePackeageToCostumerStep() {
-		return this.stepBuilderFactory.get("givePackeageToCostumerStep").tasklet(new Tasklet() {
+		return this.stepBuilderFactory.get("givePackeageToCostumerStep 2").tasklet(new Tasklet() {
 
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
@@ -39,10 +39,16 @@ public class Application {
 
 	@Bean
 	public Step driveToAddressStep() {
-		return this.stepBuilderFactory.get("driveToAddressStep").tasklet(new Tasklet() {
+		
+		final boolean GOT_LOST=false;
+		return this.stepBuilderFactory.get("driveToAddressStep 2").tasklet(new Tasklet() {
 
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				if(GOT_LOST) {
+					throw new Exception("Got lost driving to the address.");
+				}
+				
 				System.out.println("Sucessfully arrived to address.");
 				return RepeatStatus.FINISHED;
 			}
@@ -51,7 +57,7 @@ public class Application {
 
 	@Bean
 	public Step packageItemStep() {
-		return this.stepBuilderFactory.get("packageItemStep").tasklet(new Tasklet() {
+		return this.stepBuilderFactory.get("packageItemStep 2").tasklet(new Tasklet() {
 
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
