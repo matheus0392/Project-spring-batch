@@ -24,10 +24,23 @@ public class Application {
 	@Autowired
 	public StepBuilderFactory stepBuilderFactory;
 
+	@Bean
+	public Step storePackageStep() {
+
+		return this.stepBuilderFactory.get("storePackageStep").tasklet(new Tasklet() {
+
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Storing the package.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
 
 	@Bean
 	public Step givePackeageToCostumerStep() {
-		return this.stepBuilderFactory.get("givePackeageToCostumerStep 2").tasklet(new Tasklet() {
+
+		return this.stepBuilderFactory.get("givePackeageToCostumerStep").tasklet(new Tasklet() {
 
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
@@ -39,16 +52,16 @@ public class Application {
 
 	@Bean
 	public Step driveToAddressStep() {
-		
-		final boolean GOT_LOST=false;
-		return this.stepBuilderFactory.get("driveToAddressStep 2").tasklet(new Tasklet() {
+
+		final boolean GOT_LOST = false;
+		return this.stepBuilderFactory.get("driveToAddressStep").tasklet(new Tasklet() {
 
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				if(GOT_LOST) {
+				if (GOT_LOST) {
 					throw new Exception("Got lost driving to the address.");
 				}
-				
+
 				System.out.println("Sucessfully arrived to address.");
 				return RepeatStatus.FINISHED;
 			}
@@ -57,7 +70,7 @@ public class Application {
 
 	@Bean
 	public Step packageItemStep() {
-		return this.stepBuilderFactory.get("packageItemStep 2").tasklet(new Tasklet() {
+		return this.stepBuilderFactory.get("packageItemStep").tasklet(new Tasklet() {
 
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
@@ -73,11 +86,12 @@ public class Application {
 				.get("deliverPackageJob")
 				.start(packageItemStep())
 				.next(driveToAddressStep())
-				.next(givePackeageToCostumerStep())
+					.on("FAILED").to(storePackageStep())
+				.from(driveToAddressStep())
+					.on("*").to(givePackeageToCostumerStep())
+				.end()
 				.build();
 	}
-
-
 
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
