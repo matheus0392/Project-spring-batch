@@ -15,7 +15,7 @@ public class CustomerDecider implements JobExecutionDecider {
 	public FlowExecutionStatus decide(JobExecution jobExecution, StepExecution stepExecution) {
 
 		int chose = (int) (Math.random() * 10);
-		String result = (chose % 10) > 3 ? "CORRECT" : "NOT_CORRECT";
+		String result = (chose % 10) > 2 ? "CORRECT" : "NOT_CORRECT";
 		System.out.println("Decider result is: " + result + " chose: " + chose);
 		return new FlowExecutionStatus(result);
 	}
