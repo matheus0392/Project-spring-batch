@@ -6,6 +6,7 @@ import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.repeat.RepeatStatus;
@@ -25,10 +26,24 @@ public class Application {
 	public StepBuilderFactory stepBuilderFactory;
 
 	@Bean
+	public JobExecutionDecider decider() {
+		return new DeliveryDecider();
+	}
+
+	@Bean
+	public Step leaveAtDoorStep() {
+		return this.stepBuilderFactory.get("leaveAtDoorStep").tasklet(new Tasklet() {
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+				System.out.println("Leaving the package at the door.");
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+
+	@Bean
 	public Step storePackageStep() {
-
 		return this.stepBuilderFactory.get("storePackageStep").tasklet(new Tasklet() {
-
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
 				System.out.println("Storing the package.");
@@ -39,9 +54,7 @@ public class Application {
 
 	@Bean
 	public Step givePackeageToCostumerStep() {
-
 		return this.stepBuilderFactory.get("givePackeageToCostumerStep").tasklet(new Tasklet() {
-
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
 				System.out.println("Given the packeage to  the Costumer.");
@@ -52,16 +65,13 @@ public class Application {
 
 	@Bean
 	public Step driveToAddressStep() {
-
 		final boolean GOT_LOST = false;
 		return this.stepBuilderFactory.get("driveToAddressStep").tasklet(new Tasklet() {
-
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
 				if (GOT_LOST) {
 					throw new Exception("Got lost driving to the address.");
 				}
-
 				System.out.println("Sucessfully arrived to address.");
 				return RepeatStatus.FINISHED;
 			}
@@ -71,7 +81,6 @@ public class Application {
 	@Bean
 	public Step packageItemStep() {
 		return this.stepBuilderFactory.get("packageItemStep").tasklet(new Tasklet() {
-
 			@Override
 			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
 				System.out.println("The item has been packaged.");
@@ -88,7 +97,10 @@ public class Application {
 				.next(driveToAddressStep())
 					.on("FAILED").to(storePackageStep())
 				.from(driveToAddressStep())
-					.on("*").to(givePackeageToCostumerStep())
+					.on("*").to(decider())
+						.on("PRESENT").to(givePackeageToCostumerStep())
+					.from(decider())
+						.on("NOT_PRESENT").to(leaveAtDoorStep())
 				.end()
 				.build();
 	}
