@@ -3,6 +3,7 @@ package mnascimento.api;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepContribution;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
@@ -15,6 +16,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
+/**
+ * @author Matheus
+ *
+ */
 @SpringBootApplication
 @EnableBatchProcessing
 public class Application {
@@ -34,6 +39,64 @@ public class Application {
 	public  JobExecutionDecider deciderCustomer() {
 		return new CustomerDecider();
 	}
+	
+	@Bean
+	public StepExecutionListener selectFlowerListener() {
+		return new FlowersSelectionStepExecutionListener();
+	}
+	
+	
+	
+	@Bean
+    public Step selectFlowersStep() {
+        return this.stepBuilderFactory.get("selectFlowersStep").tasklet(new Tasklet() {
+
+            @Override
+            public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+                System.out.println("Gathering flowers for order.");
+                return RepeatStatus.FINISHED; 
+            }
+            
+        }).listener(selectFlowerListener()).build();
+    }
+
+    @Bean
+    public Step removeThornsStep() {
+        return this.stepBuilderFactory.get("removeThornsStep").tasklet(new Tasklet() {
+
+            @Override
+            public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+                System.out.println("Remove thorns from roses.");
+                return RepeatStatus.FINISHED; 
+            }
+            
+        }).build();
+    }
+    
+    @Bean
+    public Step arrangeFlowersStep() {
+        return this.stepBuilderFactory.get("arrangeFlowersStep").tasklet(new Tasklet() {
+
+            @Override
+            public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+                System.out.println("Arranging flowers for order.");
+                return RepeatStatus.FINISHED; 
+            }
+            
+        }).build();
+    }
+
+    @Bean
+    public Job prepareFlowers() {
+        return this.jobBuilderFactory.get("prepareFlowersJob")
+        		.start(selectFlowersStep())
+        			.on("TRIM_REQUIRED").to(removeThornsStep()).next(arrangeFlowersStep())
+        		.from(selectFlowersStep())
+        			.on("NO_TRIM_REQUIRED").to(arrangeFlowersStep())
+        		.end()
+        		.build();
+    }
+	
 
 	@Bean
 	public Step giveRefoundStep() {

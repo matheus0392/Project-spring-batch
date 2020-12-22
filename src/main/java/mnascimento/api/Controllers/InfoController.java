@@ -9,7 +9,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import mnascimento.api.Domains.Info;
 
-
+/**
+ * @author Matheus
+ *
+ */
 @RestController
 public class InfoController {
 

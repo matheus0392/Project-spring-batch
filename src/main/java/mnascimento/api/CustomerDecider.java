@@ -5,6 +5,10 @@ import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.job.flow.FlowExecutionStatus;
 import org.springframework.batch.core.job.flow.JobExecutionDecider;
 
+/**
+ * @author Matheus
+ *
+ */
 public class CustomerDecider implements JobExecutionDecider {
 
 	@Override

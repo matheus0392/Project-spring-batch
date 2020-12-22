@@ -6,6 +6,10 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 
+/**
+ * @author Matheus
+ *
+ */
 @Entity
 public class Info implements Serializable {
 
