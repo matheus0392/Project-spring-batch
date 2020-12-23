@@ -1,5 +1,7 @@
 package mnascimento.api;
 
+import java.util.List;
+
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepContribution;
@@ -13,11 +15,14 @@ import org.springframework.batch.core.job.flow.JobExecutionDecider;
 import org.springframework.batch.core.job.flow.support.SimpleFlow;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.batch.core.step.tasklet.Tasklet;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 /**
  * @author Matheus
@@ -34,201 +39,27 @@ public class Application {
 	public StepBuilderFactory stepBuilderFactory;
 
 	@Bean
-	public JobExecutionDecider decider() {
-		return new DeliveryDecider();
+	public ItemReader<String> itemReader() {
+		return new SimpleItemReader();
 	}
 
 	@Bean
-	public  JobExecutionDecider deciderCustomer() {
-		return new CustomerDecider();
-	}
-	
-	@Bean
-	public StepExecutionListener selectFlowerListener() {
-		return new FlowersSelectionStepExecutionListener();
-	}
-	
-	@Bean
-	public Flow deliveryFlow() {
-		return new FlowBuilder<SimpleFlow>("deliveryFlow")
-				.start(driveToAddressStep())
-				.on("FAILED").fail()
-			.from(driveToAddressStep())
-				.on("*").to(decider())
-					.on("PRESENT").to(givePackeageToCostumerStep())
-						.on("*").to(deciderCustomer())
-							.on("CORRECT").to(thanksCustomerStep())
-						.from(deciderCustomer())
-							.on("NOT_CORRECT").to(giveRefoundStep())
-				.from(decider())
-					.on("NOT_PRESENT").to(leaveAtDoorStep()).build();
-	}
-	
-	@Bean
-	public Step nestedBillingJobStep() {
-		return this.stepBuilderFactory.get("nestedBillingJobStep").job(billingJob()).build();
+	public Step chunkBasedStep() {
+		return this.stepBuilderFactory.get("chunkBasedStep").<String, String>chunk(3).reader(itemReader())
+				.writer(new ItemWriter<String>() {
+
+					@Override
+					public void write(List<? extends String> items) throws Exception {
+						System.out.println(String.format("Received list of size %s", items.size()));
+						items.forEach(System.out::println);
+					}
+				}).build();
 	}
 
 	@Bean
-	public Step sendInvoiceStep() {
-		return this.stepBuilderFactory.get("invoiceStep").tasklet(new Tasklet() {
-
-			@Override
-			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				System.out.println("Invoice is sent to the customer");
-				return RepeatStatus.FINISHED;
-			}
-		}).build();
-	}
-
-	@Bean
-	public Job billingJob() {
-		return this.jobBuilderFactory.get("billingJob").start(sendInvoiceStep()).build();
-	}
-	
-	@Bean
-    public Step selectFlowersStep() {
-        return this.stepBuilderFactory.get("selectFlowersStep").tasklet(new Tasklet() {
-
-            @Override
-            public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-                System.out.println("Gathering flowers for order.");
-                return RepeatStatus.FINISHED; 
-            }
-            
-        }).listener(selectFlowerListener()).build();
-    }
-
-    @Bean
-    public Step removeThornsStep() {
-        return this.stepBuilderFactory.get("removeThornsStep").tasklet(new Tasklet() {
-
-            @Override
-            public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-                System.out.println("Remove thorns from roses.");
-                return RepeatStatus.FINISHED; 
-            }
-            
-        }).build();
-    }
-    
-    @Bean
-    public Step arrangeFlowersStep() {
-        return this.stepBuilderFactory.get("arrangeFlowersStep").tasklet(new Tasklet() {
-
-            @Override
-            public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-                System.out.println("Arranging flowers for order.");
-                return RepeatStatus.FINISHED; 
-            }
-            
-        }).build();
-    }
-
-    @Bean
-    public Job prepareFlowers() {
-        return this.jobBuilderFactory.get("prepareFlowersJob")
-        		.start(selectFlowersStep())
-        			.on("TRIM_REQUIRED").to(removeThornsStep()).next(arrangeFlowersStep())
-        		.from(selectFlowersStep())
-        			.on("NO_TRIM_REQUIRED").to(arrangeFlowersStep())
-        		.from(arrangeFlowersStep())
-        			.on("*").to(deliveryFlow())
-        		.end()
-        		.build();
-    }
-	
-
-	@Bean
-	public Step giveRefoundStep() {
-		return this.stepBuilderFactory.get("giveRefoundStep").tasklet(new Tasklet() {
-			@Override
-			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				System.out.println("give the customer refound.");
-				return RepeatStatus.FINISHED;
-			}
-		}).build();
-	}
-
-	@Bean
-	public Step thanksCustomerStep() {
-		return this.stepBuilderFactory.get("thanksCustomerStep").tasklet(new Tasklet() {
-			@Override
-			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				System.out.println("thanks the customer.");
-				return RepeatStatus.FINISHED;
-			}
-		}).build();
-	}
-
-	@Bean
-	public Step leaveAtDoorStep() {
-		return this.stepBuilderFactory.get("leaveAtDoorStep").tasklet(new Tasklet() {
-			@Override
-			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				System.out.println("Leaving the package at the door.");
-				return RepeatStatus.FINISHED;
-			}
-		}).build();
-	}
-
-	@Bean
-	public Step storePackageStep() {
-		return this.stepBuilderFactory.get("storePackageStep").tasklet(new Tasklet() {
-			@Override
-			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				System.out.println("Storing the package.");
-				return RepeatStatus.FINISHED;
-			}
-		}).build();
-	}
-
-	@Bean
-	public Step givePackeageToCostumerStep() {
-		return this.stepBuilderFactory.get("givePackeageToCostumerStep").tasklet(new Tasklet() {
-			@Override
-			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				System.out.println("Given the packeage to  the Costumer.");
-				return RepeatStatus.FINISHED;
-			}
-		}).build();
-	}
-
-	@Bean
-	public Step driveToAddressStep() {
-		final boolean GOT_LOST = false;
-		return this.stepBuilderFactory.get("driveToAddressStep").tasklet(new Tasklet() {
-			@Override
-			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				if (GOT_LOST) {
-					throw new Exception("Got lost driving to the address.");
-				}
-				System.out.println("Sucessfully arrived to address.");
-				return RepeatStatus.FINISHED;
-			}
-		}).build();
-	}
-
-	@Bean
-	public Step packageItemStep() {
-		return this.stepBuilderFactory.get("packageItemStep").tasklet(new Tasklet() {
-			@Override
-			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
-				System.out.println("The item has been packaged.");
-				return RepeatStatus.FINISHED;
-			}
-		}).build();
-	}
-
-	@Bean
-	public Job deliverPackageJob() {
-		return this.jobBuilderFactory
-				.get("deliverPackageJob")
-				.start(packageItemStep())
-				.on("*").to(deliveryFlow())
-				.next(nestedBillingJobStep())
-				.end()
-				.build();
+	public Job job() {
+		return this.jobBuilderFactory.get("job")
+				.start(chunkBasedStep()).build();
 	}
 
 	public static void main(String[] args) {
