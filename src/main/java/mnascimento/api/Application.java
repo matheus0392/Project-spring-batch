@@ -69,10 +69,16 @@ public class Application {
 		return new TrackedOrderItemProcessor();
 	}
 
+	//challenge
+	@Bean
+	public ItemProcessor< TrackedOrder,TrackedOrder>FreeShippingValidatingItemProcessor() {
+		return new FreeShippingItemProcessor();
+	}
+
 	@Bean
 	public ItemProcessor< Order, TrackedOrder> compositeItemProcessor() {
 		return new CompositeItemProcessorBuilder<Order,TrackedOrder>()
-				.delegates(orderValidatingItemProcessor(), TrackedOrderValidatingItemProcessor())
+				.delegates(orderValidatingItemProcessor(), TrackedOrderValidatingItemProcessor(), FreeShippingValidatingItemProcessor())
 				.build();
 	}
 
