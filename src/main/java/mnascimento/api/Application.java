@@ -13,10 +13,16 @@ import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
+import org.springframework.batch.item.json.JacksonJsonObjectMarshaller;
+import org.springframework.batch.item.json.JsonFileItemWriter;
+import org.springframework.batch.item.json.JsonObjectMarshaller;
+import org.springframework.batch.item.json.builder.JsonFileItemWriterBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
 
 import mnascimento.api.Domains.Order;
 
@@ -36,7 +42,7 @@ public class Application {
 
 	public static String INSERT_ORDER_SQL = "insert into "
 			+ "SHIPPED_ORDER_OUTPUT(order_id, first_name, last_name, email, item_id, item_name, cost, ship_date)"
-			+ " values(:orderId,:firstName,:lastName,:email,:itemId,:itemName,:cost,:shipDate)";
+			+ " values(?,?,?,?,?,?,?,?)";
 
 	@Autowired
 	public JobBuilderFactory jobBuilderFactory;
@@ -48,11 +54,18 @@ public class Application {
 	public DataSource dataSource;
 
 	private ItemWriter<Order> ItemWriter() {
-		return new JdbcBatchItemWriterBuilder<Order>()
+
+		/*return new JdbcBatchItemWriterBuilder<Order>()
 				.dataSource(dataSource)
 				.sql(INSERT_ORDER_SQL)
-				// .itemPreparedStatementSetter(new OrderItemPreparedStatementSetter())
-				.beanMapped().build();
+				.itemPreparedStatementSetter(new OrderItemPreparedStatementSetter())
+				.build();*/
+		//challenge
+		return new JsonFileItemWriterBuilder<Order>()
+			.jsonObjectMarshaller(new JacksonJsonObjectMarshaller<Order>())
+	        .resource(new FileSystemResource("./data/select_out.json"))
+	        .name("OrderJsonFileItemWriter")
+	        .build();
 	}
 
 	@Bean
