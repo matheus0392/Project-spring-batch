@@ -11,7 +11,10 @@ import org.springframework.batch.core.configuration.annotation.JobBuilderFactory
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
+import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
+import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -44,18 +47,31 @@ public class Application {
 	public DataSource dataSource;
 
 	@Bean
-	public ItemReader<Order> itemReader() {
-		return new JdbcCursorItemReaderBuilder<Order>()
-				.dataSource(dataSource)
-				.name("JdbcCursorItemReader")
-				.sql(ORDER_SQL)
-				.rowMapper(new OrderRowMapper())
-				.build();
+	public PagingQueryProvider queryProvider() throws Exception {
+		 SqlPagingQueryProviderFactoryBean factory= new SqlPagingQueryProviderFactoryBean();
+
+		 factory.setSelectClause("select order_id, first_name, last_name, email, cost, item_id, item_name, ship_date");
+		 factory.setFromClause("from SHIPPED_ORDER");
+		 factory.setSortKey("order_id");
+		 factory.setDataSource(dataSource);;
+		 return factory.getObject();
 	}
 
 	@Bean
-	public Step chunkBasedStep() {
-		return this.stepBuilderFactory.get("chunkBasedStep").<Order, Order>chunk(3).reader(itemReader())
+	public ItemReader<Order> itemReader() throws Exception {
+		return new JdbcPagingItemReaderBuilder<Order>()
+				.dataSource(dataSource)
+				.name("JdbcCursorItemReader")
+				.queryProvider(queryProvider())
+				.rowMapper(new OrderRowMapper())
+				.pageSize(10)
+				.build();
+	}
+
+
+	@Bean
+	public Step chunkBasedStep() throws Exception {
+		return this.stepBuilderFactory.get("chunkBasedStep").<Order, Order>chunk(10).reader(itemReader())
 				.writer(new ItemWriter<Order>() {
 
 					@Override
@@ -67,7 +83,7 @@ public class Application {
 	}
 
 	@Bean
-	public Job job() {
+	public Job job() throws Exception {
 		return this.jobBuilderFactory.get("job").start(chunkBasedStep()).build();
 	}
 
