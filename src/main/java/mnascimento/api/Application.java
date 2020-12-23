@@ -7,6 +7,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.PagingQueryProvider;
@@ -17,6 +18,7 @@ import org.springframework.batch.item.json.JacksonJsonObjectMarshaller;
 import org.springframework.batch.item.json.JsonFileItemWriter;
 import org.springframework.batch.item.json.JsonObjectMarshaller;
 import org.springframework.batch.item.json.builder.JsonFileItemWriterBuilder;
+import org.springframework.batch.item.validator.BeanValidatingItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -53,7 +55,15 @@ public class Application {
 	@Autowired
 	public DataSource dataSource;
 
-	private ItemWriter<Order> ItemWriter() {
+	@Bean
+	public ItemProcessor<Order,Order> orderValidatingItemProcessor() {
+		BeanValidatingItemProcessor<Order> itemProcessor = new BeanValidatingItemProcessor<Order>();
+		itemProcessor.setFilter(true);
+		return itemProcessor;
+	}
+
+	@Bean
+	public ItemWriter<Order> ItemWriter() {
 
 		/*return new JdbcBatchItemWriterBuilder<Order>()
 				.dataSource(dataSource)
@@ -87,8 +97,13 @@ public class Application {
 
 	@Bean
 	public Step chunkBasedStep() throws Exception {
-		return this.stepBuilderFactory.get("chunkBasedStep").<Order, Order>chunk(10).reader(itemReader())
-				.writer(ItemWriter()).build();
+		return this.stepBuilderFactory
+				.get("chunkBasedStep")
+				.<Order, Order>chunk(10)
+				.reader(itemReader())
+				.processor(orderValidatingItemProcessor())
+				.writer(ItemWriter())
+				.build();
 	}
 
 	@Bean
