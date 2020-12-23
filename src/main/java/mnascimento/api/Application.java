@@ -10,16 +10,13 @@ import org.springframework.batch.core.configuration.annotation.StepBuilderFactor
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.batch.item.database.PagingQueryProvider;
+import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
-import org.springframework.batch.item.file.FlatFileItemWriter;
-import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
-import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.io.FileSystemResource;
 
 import mnascimento.api.Domains.Order;
 
@@ -37,6 +34,10 @@ public class Application {
 	public static String ORDER_SQL = "select order_id, first_name, last_name, "
 			+ "email, cost, item_id, item_name, ship_date " + "from SHIPPED_ORDER order by order_id";
 
+	public static String INSERT_ORDER_SQL = "insert into "
+			+ "SHIPPED_ORDER_OUTPUT(order_id, first_name, last_name, email, item_id, item_name, cost, ship_date)"
+			+ " values(?,?,?,?,?,?,?,?)";
+
 	@Autowired
 	public JobBuilderFactory jobBuilderFactory;
 
@@ -46,18 +47,16 @@ public class Application {
 	@Autowired
 	public DataSource dataSource;
 
-	private ItemWriter<Order> ItemWriter() {
-		FlatFileItemWriter<Order> itemWriter = new FlatFileItemWriter<Order>();
-		itemWriter.setResource(new FileSystemResource("./data/shipped_out.csv"));
-		DelimitedLineAggregator<Order> aggregator = new DelimitedLineAggregator<Order>();
-		aggregator.setDelimiter(",");
 
-		BeanWrapperFieldExtractor<Order> fieldExtractor = new BeanWrapperFieldExtractor<Order>();
-		fieldExtractor.setNames(tokens);
-		aggregator.setFieldExtractor(fieldExtractor);
-		itemWriter.setLineAggregator(aggregator);
-		return itemWriter;
+	private ItemWriter<Order> ItemWriter() {
+		return new JdbcBatchItemWriterBuilder<Order>()
+		.dataSource(dataSource)
+		.sql(INSERT_ORDER_SQL)
+		.itemPreparedStatementSetter(new OrderItemPreparedStatementSetter())
+		.build();
 	}
+
+
 
 	@Bean
 	public PagingQueryProvider queryProvider() throws Exception {
