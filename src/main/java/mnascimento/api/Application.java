@@ -18,6 +18,7 @@ import org.springframework.batch.item.json.JacksonJsonObjectMarshaller;
 import org.springframework.batch.item.json.JsonFileItemWriter;
 import org.springframework.batch.item.json.JsonObjectMarshaller;
 import org.springframework.batch.item.json.builder.JsonFileItemWriterBuilder;
+import org.springframework.batch.item.support.builder.CompositeItemProcessorBuilder;
 import org.springframework.batch.item.validator.BeanValidatingItemProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -63,12 +64,17 @@ public class Application {
 		return itemProcessor;
 	}
 
-
 	@Bean
 	public ItemProcessor< Order,TrackedOrder> TrackedOrderValidatingItemProcessor() {
 		return new TrackedOrderItemProcessor();
 	}
 
+	@Bean
+	public ItemProcessor< Order, TrackedOrder> compositeItemProcessor() {
+		return new CompositeItemProcessorBuilder<Order,TrackedOrder>()
+				.delegates(orderValidatingItemProcessor(), TrackedOrderValidatingItemProcessor())
+				.build();
+	}
 
 	@Bean
 	public ItemWriter<TrackedOrder> ItemWriter() {
@@ -109,7 +115,8 @@ public class Application {
 				.get("chunkBasedStep")
 				.<Order, TrackedOrder>chunk(10)
 				.reader(itemReader())
-				.processor(TrackedOrderValidatingItemProcessor())
+				//.processor(TrackedOrderValidatingItemProcessor())
+				.processor(compositeItemProcessor())
 				.writer(ItemWriter())
 				.build();
 	}
