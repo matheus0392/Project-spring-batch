@@ -27,6 +27,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
 
 import mnascimento.api.Domains.Order;
+import mnascimento.api.Domains.TrackedOrder;
 
 /**
  * @author Matheus
@@ -62,8 +63,15 @@ public class Application {
 		return itemProcessor;
 	}
 
+
 	@Bean
-	public ItemWriter<Order> ItemWriter() {
+	public ItemProcessor< Order,TrackedOrder> TrackedOrderValidatingItemProcessor() {
+		return new TrackedOrderItemProcessor();
+	}
+
+
+	@Bean
+	public ItemWriter<TrackedOrder> ItemWriter() {
 
 		/*return new JdbcBatchItemWriterBuilder<Order>()
 				.dataSource(dataSource)
@@ -71,8 +79,8 @@ public class Application {
 				.itemPreparedStatementSetter(new OrderItemPreparedStatementSetter())
 				.build();*/
 		//challenge
-		return new JsonFileItemWriterBuilder<Order>()
-			.jsonObjectMarshaller(new JacksonJsonObjectMarshaller<Order>())
+		return new JsonFileItemWriterBuilder<TrackedOrder>()
+			.jsonObjectMarshaller(new JacksonJsonObjectMarshaller<TrackedOrder>())
 	        .resource(new FileSystemResource("./data/select_out.json"))
 	        .name("OrderJsonFileItemWriter")
 	        .build();
@@ -99,9 +107,9 @@ public class Application {
 	public Step chunkBasedStep() throws Exception {
 		return this.stepBuilderFactory
 				.get("chunkBasedStep")
-				.<Order, Order>chunk(10)
+				.<Order, TrackedOrder>chunk(10)
 				.reader(itemReader())
-				.processor(orderValidatingItemProcessor())
+				.processor(TrackedOrderValidatingItemProcessor())
 				.writer(ItemWriter())
 				.build();
 	}
