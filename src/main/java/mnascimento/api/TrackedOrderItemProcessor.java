@@ -11,12 +11,20 @@ public class TrackedOrderItemProcessor implements ItemProcessor<Order, TrackedOr
 
 	@Override
 	public TrackedOrder process(Order item) throws Exception {
-		TrackedOrder trackedOrder= new TrackedOrder(item);
+		TrackedOrder trackedOrder = new TrackedOrder(item);
 
 		// trackedOrder.setFreeShipping(freeShipping);
-		trackedOrder.setTrackingNumber(UUID.randomUUID().toString());
+		trackedOrder.setTrackingNumber(getTrackingNumber());
 		
 		return trackedOrder;
+	}
+
+	private String getTrackingNumber() throws OrderProcessingException {
+
+		if (Math.random() < .3) {
+			throw new OrderProcessingException();
+		}
+		return UUID.randomUUID().toString();
 	}
 
 }

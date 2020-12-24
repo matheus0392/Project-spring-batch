@@ -123,6 +123,10 @@ public class Application {
 				.reader(itemReader())
 				//.processor(TrackedOrderValidatingItemProcessor())
 				.processor(compositeItemProcessor())
+				.faultTolerant()
+				.skip(OrderProcessingException.class)
+				.skipLimit(6)
+				.listener(new CustomSkipListener())
 				.writer(ItemWriter())
 				.build();
 	}
