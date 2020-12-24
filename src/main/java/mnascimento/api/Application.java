@@ -1,14 +1,24 @@
 package mnascimento.api;
 
-import java.util.concurrent.ThreadPoolExecutor;
+import java.time.LocalDateTime;
+import java.util.Date;
 
 import javax.sql.DataSource;
 
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
+import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
+import org.springframework.batch.core.repository.JobRestartException;
+import org.springframework.batch.core.scope.context.ChunkContext;
+import org.springframework.batch.core.step.tasklet.Tasklet;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
@@ -16,19 +26,16 @@ import org.springframework.batch.item.database.PagingQueryProvider;
 import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
 import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
 import org.springframework.batch.item.database.support.SqlPagingQueryProviderFactoryBean;
-import org.springframework.batch.item.json.JacksonJsonObjectMarshaller;
-import org.springframework.batch.item.json.JsonFileItemWriter;
-import org.springframework.batch.item.json.JsonObjectMarshaller;
-import org.springframework.batch.item.json.builder.JsonFileItemWriterBuilder;
 import org.springframework.batch.item.support.builder.CompositeItemProcessorBuilder;
 import org.springframework.batch.item.validator.BeanValidatingItemProcessor;
+import org.springframework.batch.repeat.RepeatStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import mnascimento.api.Domains.Order;
@@ -40,6 +47,7 @@ import mnascimento.api.Domains.TrackedOrder;
  */
 @SpringBootApplication
 @EnableBatchProcessing
+@EnableScheduling
 public class Application {
 
 	public static String[] tokens = new String[] { "orderId", "firstName", "lastName", "email", "cost", "itemId",
@@ -60,6 +68,9 @@ public class Application {
 
 	@Autowired
 	public DataSource dataSource;
+
+	@Autowired
+	public JobLauncher jobLauncher;
 
 	@Bean
 	public ItemProcessor<Order,Order> orderValidatingItemProcessor() {
@@ -144,9 +155,32 @@ public class Application {
 				.build();
 	}
 
+
+	@Scheduled(cron ="0/30 * * * * *")
+	public void runJob() throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException, Exception {
+
+		JobParametersBuilder params= new JobParametersBuilder();
+		params.addDate("runTime",new Date());
+
+		this.jobLauncher.run(job(),params.toJobParameters());
+	}
+
+	@Bean
+	public Step step() {
+		return this.stepBuilderFactory.get("step").tasklet(new Tasklet() {
+
+			@Override
+			public RepeatStatus execute(StepContribution contribution, ChunkContext chunkContext) throws Exception {
+
+				System.out.println("the runtime is: " + LocalDateTime.now());
+				return RepeatStatus.FINISHED;
+			}
+		}).build();
+	}
+
 	@Bean
 	public Job job() throws Exception {
-		return this.jobBuilderFactory.get("job").start(chunkBasedStep()).build();
+		return this.jobBuilderFactory.get("job").start(step()).build();
 	}
 
 	public static void main(String[] args) {
