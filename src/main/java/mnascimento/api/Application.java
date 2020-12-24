@@ -1,5 +1,7 @@
 package mnascimento.api;
 
+import java.util.concurrent.ThreadPoolExecutor;
+
 import javax.sql.DataSource;
 
 import org.springframework.batch.core.Job;
@@ -26,6 +28,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import mnascimento.api.Domains.Order;
 import mnascimento.api.Domains.TrackedOrder;
@@ -45,8 +49,8 @@ public class Application {
 			+ "email, cost, item_id, item_name, ship_date " + "from SHIPPED_ORDER order by order_id";
 
 	public static String INSERT_ORDER_SQL = "insert into "
-			+ "SHIPPED_ORDER_OUTPUT(order_id, first_name, last_name, email, item_id, item_name, cost, ship_date)"
-			+ " values(?,?,?,?,?,?,?,?)";
+			+ "TRACKED_ORDER(order_id, first_name, last_name, email, item_id, item_name, cost, ship_date, tracking_number, free_shipping)"
+			+ " values(:orderId,:firstName,:lastName,:email,:itemId,:itemName,:cost,:shipDate,:trackingNumber, :freeShipping)";
 
 	@Autowired
 	public JobBuilderFactory jobBuilderFactory;
@@ -82,21 +86,15 @@ public class Application {
 				.build();
 	}
 
-	@Bean
-	public ItemWriter<TrackedOrder> ItemWriter() {
+    @Bean
+    public ItemWriter<TrackedOrder> ItemWriter () {
 
-		/*return new JdbcBatchItemWriterBuilder<Order>()
-				.dataSource(dataSource)
-				.sql(INSERT_ORDER_SQL)
-				.itemPreparedStatementSetter(new OrderItemPreparedStatementSetter())
-				.build();*/
-		//challenge
-		return new JsonFileItemWriterBuilder<TrackedOrder>()
-			.jsonObjectMarshaller(new JacksonJsonObjectMarshaller<TrackedOrder>())
-	        .resource(new FileSystemResource("./data/select_out.json"))
-	        .name("OrderJsonFileItemWriter")
-	        .build();
-	}
+        return new JdbcBatchItemWriterBuilder<TrackedOrder>()
+        		.dataSource(dataSource)
+                .sql(INSERT_ORDER_SQL)
+                .beanMapped()
+                .build();
+    }
 
 	@Bean
 	public PagingQueryProvider queryProvider() throws Exception {
@@ -111,8 +109,22 @@ public class Application {
 
 	@Bean
 	public ItemReader<Order> itemReader() throws Exception {
-		return new JdbcPagingItemReaderBuilder<Order>().dataSource(dataSource).name("JdbcCursorItemReader")
-				.queryProvider(queryProvider()).rowMapper(new OrderRowMapper()).pageSize(10).build();
+		return new JdbcPagingItemReaderBuilder<Order>()
+				.dataSource(dataSource)
+				.name("JdbcCursorItemReader")
+				.queryProvider(queryProvider())
+				.rowMapper(new OrderRowMapper())
+				.pageSize(10)
+				.saveState(false)
+				.build();
+	}
+
+	@Bean
+	public TaskExecutor taskExecutor() {
+		ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+		executor.setCorePoolSize(2);
+		executor.setMaxPoolSize(10);
+		return executor;
 	}
 
 	@Bean
@@ -124,10 +136,11 @@ public class Application {
 				//.processor(TrackedOrderValidatingItemProcessor())
 				.processor(compositeItemProcessor())
 				.faultTolerant()
-				.skip(OrderProcessingException.class)
-				.skipLimit(6)
-				.listener(new CustomSkipListener())
+				.retry(OrderProcessingException.class)
+				.retryLimit(3)
+				.listener(new CustomRetryListener())
 				.writer(ItemWriter())
+				.taskExecutor(taskExecutor())
 				.build();
 	}
 
