@@ -5,7 +5,15 @@ import java.util.Date;
 
 import javax.sql.DataSource;
 
+import org.quartz.JobBuilder;
+import org.quartz.JobDetail;
+import org.quartz.JobExecutionContext;
+import org.quartz.JobExecutionException;
+import org.quartz.SimpleScheduleBuilder;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.Step;
@@ -13,7 +21,9 @@ import org.springframework.batch.core.StepContribution;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.explore.JobExplorer;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRestartException;
@@ -37,6 +47,7 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scheduling.quartz.QuartzJobBean;
 
 import mnascimento.api.Domains.Order;
 import mnascimento.api.Domains.TrackedOrder;
@@ -48,7 +59,7 @@ import mnascimento.api.Domains.TrackedOrder;
 @SpringBootApplication
 @EnableBatchProcessing
 @EnableScheduling
-public class Application {
+public class Application extends QuartzJobBean{
 
 	public static String[] tokens = new String[] { "orderId", "firstName", "lastName", "email", "cost", "itemId",
 			"itemName", "shipDate" };
@@ -71,6 +82,60 @@ public class Application {
 
 	@Autowired
 	public JobLauncher jobLauncher;
+	
+	@Autowired
+	public JobExplorer jobExplorer;
+	
+	@Bean
+	public JobDetail jobDetail(){
+		return JobBuilder.newJob(Application.class).storeDurably().build();
+	}
+	
+	@Bean
+	public Trigger trigger() {
+		SimpleScheduleBuilder schedule = 	SimpleScheduleBuilder
+				.simpleSchedule()
+				.withIntervalInSeconds(30)
+				.repeatForever();
+		
+		return TriggerBuilder
+				.newTrigger()
+				.forJob(jobDetail())
+				.withSchedule(schedule)
+				.build();
+	}
+	
+	@Override
+	protected void executeInternal(JobExecutionContext context)  {
+		JobParameters params = null;
+		try {
+			params = new JobParametersBuilder(jobExplorer)
+					.getNextJobParameters(job()).toJobParameters();
+		} catch (Exception e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		try {
+			this.jobLauncher.run(job(), params);
+		} catch (JobExecutionAlreadyRunningException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JobRestartException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JobInstanceAlreadyCompleteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JobParametersInvalidException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
 
 	@Bean
 	public ItemProcessor<Order,Order> orderValidatingItemProcessor() {
@@ -156,14 +221,14 @@ public class Application {
 	}
 
 
-	@Scheduled(cron ="0/30 * * * * *")
+	/*@Scheduled(cron ="0/30 * * * * *")
 	public void runJob() throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException, Exception {
 
 		JobParametersBuilder params= new JobParametersBuilder();
 		params.addDate("runTime",new Date());
 
 		this.jobLauncher.run(job(),params.toJobParameters());
-	}
+	}*/
 
 	@Bean
 	public Step step() {
@@ -180,11 +245,12 @@ public class Application {
 
 	@Bean
 	public Job job() throws Exception {
-		return this.jobBuilderFactory.get("job").start(step()).build();
+		return this.jobBuilderFactory.get("job").incrementer(new  RunIdIncrementer()).start(step()).build();
 	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(Application.class, args);
 		System.out.println("application started");
 	}
+
 }
