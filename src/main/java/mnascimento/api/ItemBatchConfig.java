@@ -4,6 +4,7 @@ package mnascimento.api;
 
 import javax.sql.DataSource;
 
+import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -31,7 +32,7 @@ import mnascimento.api.Processors.InfoItemProcessor;
  *		It also autowires a couple factories needed further below
  */
 @Configuration
-public class BatchConfig {
+public class ItemBatchConfig {
 
 	@Autowired
 	public JobBuilderFactory jobBuilderFactory;
@@ -44,10 +45,11 @@ public class BatchConfig {
 
 	/**
 	 *  creates an instance of the InfoItemProcessor that you defined earlier, meant to convert the data
+	 *
 	 * @return InfoItemProcessor
 	 */
 	@Bean
-	public InfoItemProcessor processor() {
+	public InfoItemProcessor infoItemProcessor() {
 	  return new InfoItemProcessor();
 	}
 
@@ -63,6 +65,7 @@ public class BatchConfig {
 
 	/**
 	 * creates an ItemReader
+	 *
 	 * @return  FlatFileItemReader
 	 */
 	@Bean
@@ -81,10 +84,11 @@ public class BatchConfig {
 
 	/**
 	 * creates an ItemWriter
+	 *
 	 * @return HibernateItemWriter
 	 */
 	@Bean
-	public JdbcBatchItemWriter<Info> writer() {
+	public JdbcBatchItemWriter<Info> infoItemWriter() {
 	  return new JdbcBatchItemWriterBuilder<Info>()
 	    .itemSqlParameterSourceProvider(new BeanPropertyItemSqlParameterSourceProvider<>())
 	    .sql("INSERT INTO Info (id, name, CPF) VALUES (:id, :name, :CPF)")
@@ -100,12 +104,26 @@ public class BatchConfig {
 	 */
 	@Bean
 	public Step infoItemStep() {
-	return stepBuilderFactory.get("infoItemStep")
-	    .<Info, Info> chunk(10) //you define how much data to write at a time.
-	    .reader(infoItemReader()) // you configure the reader, processor, and writer by using the beans injected earlier.
-	    .processor(processor())
-	    .writer(writer())
-	    .listener(StepListener())
-	    .build();
+		return stepBuilderFactory.get("infoItemStep")
+			 .<Info, Info> chunk(10)
+			 .reader(infoItemReader())
+			 .processor(infoItemProcessor())
+			 .writer(infoItemWriter())
+			 .listener(StepListener())
+			 .build();
 	}
+
+	/**
+	 * definition of a job
+	 *
+	 * @return Job
+	 */
+	@Bean
+	public Job infoJob() {
+		return jobBuilderFactory.get("infoJob")
+				.listener(JobListener())
+				.start(infoItemStep())
+				.build();
+	}
+
 }

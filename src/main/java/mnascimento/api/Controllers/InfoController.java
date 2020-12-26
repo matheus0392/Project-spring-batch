@@ -5,11 +5,12 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Date;
 
-import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.JobParametersInvalidException;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
-import org.springframework.batch.core.listener.JobExecutionListenerSupport;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
 import org.springframework.batch.core.repository.JobInstanceAlreadyCompleteException;
 import org.springframework.batch.core.repository.JobRepository;
@@ -34,10 +35,13 @@ public class InfoController {
 	public InfoService infoService;
 
 	@Autowired
-	public JobExecutionListenerSupport JobListener;
+	public JobLauncher jobLauncher;
 
 	@Autowired
 	public Step infoItemStep;
+
+	@Autowired
+	public Job infoJob;
 
 	@GetMapping("/getall")
 	public ArrayList<Info> Start() {
@@ -47,14 +51,14 @@ public class InfoController {
 	/**
 	 * execute a job
 	 *
-	 * @return console PrintStream as html
+	 * @return console PrintStream as html result
 	 * @throws JobExecutionAlreadyRunningException
 	 * @throws JobRestartException
 	 * @throws JobInstanceAlreadyCompleteException
+	 * @throws JobParametersInvalidException
 	 */
-	@GetMapping("/exec")
-	public String Exec()
-			throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException {
+	@GetMapping("/execjob")
+	public String ExecJob() throws JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException {
 
 		// Create a stream to hold the output
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -64,12 +68,11 @@ public class InfoController {
 		// Tell Java to use your special stream
 		System.setOut(ps);
 
-		String job = "importUserJob";
 
-		JobExecution jobExecution = jobRepository.createJobExecution(job,
-				new JobParametersBuilder().addDate("data", new Date()).toJobParameters());
+		JobParametersBuilder params = new JobParametersBuilder();
+		params.addDate("runTime", new Date());
+		this.jobLauncher.run(infoJob, params.toJobParameters());
 
-		jobBuilderFactory.get(job).listener(JobListener).start(infoItemStep).build().execute(jobExecution);
 
 		// Put things back
 		System.out.flush();

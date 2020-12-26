@@ -15,13 +15,7 @@ public class JobNotificationListener extends JobExecutionListenerSupport {
 	@Override
 	public void afterJob(JobExecution jobExecution) {
 		if (jobExecution.getStatus() == BatchStatus.COMPLETED) {
-			LOG.info("!!! JOB FINISHED! " + jobExecution.getJobConfigurationName());
-
-			/*
-			 * jdbcTemplate.query("SELECT first_name, last_name FROM people", (rs, row) ->
-			 * new Person( rs.getString(1), rs.getString(2)) ).forEach(person ->
-			 * log.info("Found <" + person + "> in the database."));
-			 */
+			LOG.info("!!! JOB FINISHED! " + jobExecution.getJobInstance().getJobName());
 		}
 
 	}
