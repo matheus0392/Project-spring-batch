@@ -2,8 +2,8 @@ package mnascimento.api.Controllers;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobParametersBuilder;
@@ -17,10 +17,18 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.JobRestartException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import mnascimento.api.Domains.Info;
 import mnascimento.api.Service.InfoService;
+
+/**
+ * @author Matheus
+ *
+ */
 
 @RestController
 public class InfoController {
@@ -43,9 +51,42 @@ public class InfoController {
 	@Autowired
 	public Job infoJob;
 
+
+	@GetMapping("/")
+	public String Base() {
+		return "API running... nothing to show here";
+	}
+
+	/**
+	 * get all Infos
+	 *
+	 * @return  List<Info>
+	 */
 	@GetMapping("/getall")
-	public ArrayList<Info> Start() {
+	public List<Info> GetAll() {
 		return infoService.GetAll();
+	}
+
+	/**
+	 * save new Info
+	 *
+	 * @param Info
+	 * @return Info
+	 */
+	@PostMapping("/save")
+	public Info Save(@RequestBody  Info info) throws Exception {
+		return infoService.save(info);
+	}
+
+	/**
+	 * get Info with this CPF
+	 *
+	 * @param String CPF
+	 * @return Info
+	 */
+	@GetMapping("/getbycpf")
+	public Info Get(@RequestParam String CPF) {
+		return infoService.get(CPF);
 	}
 
 	/**
@@ -81,11 +122,6 @@ public class InfoController {
 		System.out.println(baos.toString());
 
 		return "<p>" + baos.toString().replaceAll("\\n", "</p><p>") + "</p>";
-	}
-
-	@GetMapping("/")
-	public String Base() {
-		return "Nothing to show";
 	}
 
 }
