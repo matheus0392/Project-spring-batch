@@ -1,4 +1,4 @@
-package mnascimento.api.Domains;
+package dev.msnascimento.api.Domains;
 
 import java.io.Serializable;
 

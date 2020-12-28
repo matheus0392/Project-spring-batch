@@ -1,4 +1,4 @@
-package mnascimento.api;
+package dev.msnascimento.api;
 
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.boot.SpringApplication;

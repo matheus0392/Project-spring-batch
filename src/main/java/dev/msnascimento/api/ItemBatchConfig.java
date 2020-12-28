@@ -1,4 +1,4 @@
-package mnascimento.api;
+package dev.msnascimento.api;
 
 
 
@@ -21,10 +21,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 
-import mnascimento.api.Domains.Info;
-import mnascimento.api.Listeners.JobNotificationListener;
-import mnascimento.api.Listeners.StepListener;
-import mnascimento.api.Processors.InfoItemProcessor;
+import dev.msnascimento.api.Listeners.StepListener;
+import dev.msnascimento.api.Domains.Info;
+import dev.msnascimento.api.Listeners.JobNotificationListener;
+import dev.msnascimento.api.Processors.InfoItemProcessor;
 
 /**
  * BatchConfig: class to define a reader, a processor, and a writer:

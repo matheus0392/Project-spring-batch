@@ -5,15 +5,15 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.3.2.RELEASE</version>
+		<version>2.4.1</version>
 		<relativePath />
 	</parent>
 
-	<groupId>mnascimento.0392</groupId>
+	<groupId>dev.msnascimento</groupId>
 	<artifactId>Project-spring-batch</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>springbatch</name>
-	<description>springbatch</description>
+	<description>Project spring batch</description>
 
 	<developers>
 		<developer>

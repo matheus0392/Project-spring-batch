@@ -1,4 +1,4 @@
-package mnascimento.api.Controllers;
+package dev.msnascimento.api.Controllers;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import mnascimento.api.Domains.Info;
-import mnascimento.api.Service.InfoService;
+import dev.msnascimento.api.Domains.Info;
+import dev.msnascimento.api.Service.InfoService;
 
 /**
  * @author Matheus

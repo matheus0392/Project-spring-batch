@@ -1,4 +1,4 @@
-package mnascimento.api.Service;
+package dev.msnascimento.api.Service;
 
 import java.util.List;
 import java.util.Optional;
@@ -6,8 +6,8 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import mnascimento.api.Domains.Info;
-import mnascimento.api.Repository.InfoRepository;
+import dev.msnascimento.api.Domains.Info;
+import dev.msnascimento.api.Repository.InfoRepository;
 
 @Service
 public class InfoService {

@@ -1,4 +1,4 @@
-package mnascimento.api;
+package dev.msnascimento.api;
 
 import java.io.IOException;
 

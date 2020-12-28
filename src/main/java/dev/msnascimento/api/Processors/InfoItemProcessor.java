@@ -1,10 +1,10 @@
-package mnascimento.api.Processors;
+package dev.msnascimento.api.Processors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.item.ItemProcessor;
 
-import mnascimento.api.Domains.Info;
+import dev.msnascimento.api.Domains.Info;
 
 public class InfoItemProcessor implements ItemProcessor<Info,Info> {
 
